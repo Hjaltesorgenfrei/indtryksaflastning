@@ -33,3 +33,7 @@
 
 # Generated Images
 *.bmp
+indtryk.html
+indtryk.js
+indtryk.wasm
+.vscode/

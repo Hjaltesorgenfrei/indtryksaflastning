@@ -1,14 +1,20 @@
+#include <SDL2/SDL.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #include "BMP.h"
 #include <cmath>
 
-BMP* image;
+#define WIDTH 800
+#define HEIGHT 600
+
 
 union Colour {
     struct Components {
+        uint8_t alpha; // Unused
         uint8_t red;
         uint8_t green;
         uint8_t blue;
-        uint8_t alpha; // Unused
     } components; 
     uint32_t colour;
 
@@ -21,10 +27,76 @@ union Colour {
 
 namespace Colours {
     Colour White = Colour(0xFFFFFFFF);
-    Colour Black = Colour(0x00000000);
+    Colour Black = Colour(0x000000FF);
+    Colour Red = Colour(0x0000FFFF);
+    Colour Blue = Colour(0x00FF00FF);
+    Colour Green = Colour(0xFF0000FF);
+}
+
+BMP *image;
+
+SDL_Window *window;
+SDL_Renderer *renderer;
+
+void redraw() {
+  SDL_RenderClear(renderer);
+  // Draw a pixel
+  for (int x = 0; x < WIDTH; x++) {
+    for (int y = 0; y < HEIGHT; y++) {
+        Colour colour = image->get_pixel(x, y);
+        SDL_SetRenderDrawColor(renderer, /* RGBA: red */ colour.components.red, colour.components.green, colour.components.blue, 0xFF);
+        SDL_RenderDrawPoint(renderer, x, y);
+    }
+  }
+  SDL_RenderPresent(renderer);
+}
+
+uint32_t ticksForNextKeyDown = 0;
+
+bool handle_events() {
+  SDL_Event event;
+  SDL_PollEvent(&event);
+  if (event.type == SDL_QUIT) {
+    return false;
+  }
+  if (event.type == SDL_KEYDOWN) {
+    uint32_t ticksNow = SDL_GetTicks();
+    if (SDL_TICKS_PASSED(ticksNow, ticksForNextKeyDown)) {
+      // Throttle keydown events for 10ms.
+      ticksForNextKeyDown = ticksNow + 10;
+      redraw();
+    }
+  }
+  return true;
+}
+
+void run_main_loop() {
+#ifdef __EMSCRIPTEN__
+  emscripten_set_main_loop([]() { handle_events(); }, 0, true);
+#else
+  while (handle_events())
+    ;
+#endif
+}
+
+
+int sdl_main() {
+  SDL_Init(SDL_INIT_VIDEO);
+
+  SDL_CreateWindowAndRenderer(WIDTH, HEIGHT, 0, &window, &renderer);
+
+  redraw();
+  run_main_loop();
+
+  SDL_DestroyRenderer(renderer);
+  SDL_DestroyWindow(window);
+
+  SDL_Quit();
+  return 0;
 }
 
 void set_pixel(uint32_t x, uint32_t y, Colour colour) {
+    if (x >= WIDTH || y >= HEIGHT) return; 
     image->set_pixel(x, y, colour.components.red, colour.components.green, colour.components.blue, 255);
 }
 
@@ -90,10 +162,14 @@ void clear_image(Colour colour = Colours::White) {
 // TODO: Implement the rest of http://members.chello.at/~easyfilter/bresenham.html
 
 int main() {
-    image = new BMP(800, 600, false);
+    image = new BMP(WIDTH, HEIGHT, false);
+    
     clear_image();
     plot_between_circles(400, 300, 100, 123, Colours::Black);
-    image->write("circle.bmp");
-    delete image;
+    plot_between_circles(200, 400, 100, 123, Colours::Red);
+    plot_between_circles(600, 400, 100, 123, Colours::Green);
+    plot_between_circles(400, 500, 100, 123, Colours::Blue);
+    sdl_main();
+    delete image;    
     return 0;
 }
