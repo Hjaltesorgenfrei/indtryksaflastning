@@ -49,6 +49,9 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v2
       # Build the project
+      - name: make build folder
+        run: |
+          mkdir build
       - name: Build project
         run: |
           emcc --bind main.cpp -o build/indtryk.html -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1
