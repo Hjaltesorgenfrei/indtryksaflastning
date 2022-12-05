@@ -28,10 +28,30 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      # Install emscripten
+      - name: Install emscripten
+        uses: juj/emsdk@v2
+        with:
+          # Install the latest SDK tools.
+          install: latest
+          # Set the $EMSDK environment variable in this step.
+          setenv: true
+      # Cache
+      - name: Cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.emscripten_cache
+            ~/.emscripten_ports
+          key: ${{ runner.os }}-emscripten-${{ hashFiles('**/Makefile') }}
       - name: Checkout
         uses: actions/checkout@v3
       - name: Setup Pages
         uses: actions/configure-pages@v2
+      # Build the project
+      - name: Build project
+        run: |
+          ./make.sh
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
