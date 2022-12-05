@@ -31,14 +31,17 @@ jobs:
       - uses: actions/checkout@v3
       - uses: mymindstorm/setup-emsdk@v11
         with:
-          version: 1.38.40
+          version: 3.1.26
           actions-cache-folder: 'emsdk-cache'
+      - name: install sdl2
+        run: |
+          sudo apt-get install libsdl2-dev
       - name: Setup Pages
         uses: actions/configure-pages@v2
       # Build the project
       - name: Build project
         run: |
-          ./make.sh
+          emcc --bind main.cpp -o indtryk.html -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
