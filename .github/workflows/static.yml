@@ -20,6 +20,10 @@ concurrency:
   group: "pages"
   cancel-in-progress: true
 
+env:
+  EM_VERSION: 3.1.26
+  EM_CACHE_FOLDER: 'emsdk-cache'
+
 jobs:
   # Single deploy job since we're just deploying
   deploy:
@@ -29,10 +33,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Setup cache
+        id: cache-system-libraries
+        uses: actions/cache@v2
+        with:
+          path: ${{env.EM_CACHE_FOLDER}}
+          key: ${{env.EM_VERSION}}-${{ runner.os }}
       - uses: mymindstorm/setup-emsdk@v11
         with:
-          version: 3.1.26
-          actions-cache-folder: 'emsdk-cache'
+          version: ${{env.EM_VERSION}}
+          actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
       - name: install sdl2
         run: |
           sudo apt-get install libsdl2-dev
@@ -41,12 +51,15 @@ jobs:
       # Build the project
       - name: Build project
         run: |
-          emcc --bind main.cpp -o indtryk.html -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1
+          emcc --bind main.cpp -o build/indtryk.html -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1
+      - name: Copy index.html
+        run: |
+          cp index.html build/index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
           # Upload entire repository
-          path: '.'
+          path: 'build'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v1
